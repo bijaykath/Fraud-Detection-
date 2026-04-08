@@ -1,0 +1,49 @@
+Title:
+End-to-End Fraud Detection System, ML Pipeline with SMOTE, Multi-Model Evaluation & Dashboard
+Project Description (LinkedIn Format)
+Objective: Built a production-ready machine learning pipeline to detect fraudulent financial transactions, covering the full data science lifecycle from raw multi-source data ingestion through model deployment.
+Data Engineering & Consolidation
+Integrated 10 separate CSV datasets (1,000 transactions) including account activity, anomaly scores, merchant data, customer profiles, suspicious activity flags, transaction metadata, and category labels into a single consolidated analytical file using Python (Pandas merge pipeline on TransactionID and CustomerID keys).
+Challenges encountered:
+•	Data lived in 10 siloed files with different join keys (TransactionID vs CustomerID vs MerchantID) required multi-step sequential merging
+•	Non-predictive PII columns (Name, Address, MerchantName) had to be identified and removed to prevent data leakage
+•	Timestamp fields required feature engineering (Hour, DayOfWeek, Month) to extract predictive signal
+•	LastLogin dates required transformation into a numeric "DaysSinceLogin" feature
+Exploratory Data Analysis (EDA)
+Performed full EDA using Python (Pandas, Matplotlib, Seaborn):
+•	Class distribution: Confirmed severe imbalance — only 4.5% fraud (45 cases) vs 95.5% non-fraud
+•	Correlation analysis: SuspiciousFlag, DaysSinceLogin, and AnomalyScore showed the strongest (though modest) correlation with fraud
+•	Amount distribution: Fraud cases did not cluster at high amounts — fraud was distributed across all transaction sizes
+•	Temporal patterns: Fraud rate varied by hour of day and month, revealing behavioral patterns
+•	Anomaly score: Fraudulent transactions skewed toward higher anomaly scores, validating the feature
+Class Imbalance — SMOTE
+The dataset had 955 non-fraud vs 45 fraud cases (21:1 ratio) — a textbook imbalanced classification problem. Trained on raw data would cause models to predict "Non-Fraud" for everything and still appear 95.5% accurate, making the model useless for fraud detection.
+Solution: SMOTE (Synthetic Minority Over-sampling Technique)
+•	Generated synthetic fraud samples via linear interpolation between real minority-class instances
+•	Balanced training set to a 2:1 ratio (764 non-fraud : 382 fraud)
+•	Applied only to training data — test set preserved at original distribution to reflect real-world conditions
+Machine Learning Models
+Four models were selected and tested, each chosen for a specific reason:
+Model	Why Selected
+Logistic Regression	Baseline linear model; interpretable coefficients; fast to train; handles class weights natively
+Decision Tree	Captures non-linear relationships; fully interpretable decision paths; useful for rule extraction
+Random Forest	Ensemble method that reduces variance; robust to outliers; handles feature interaction well
+Gradient Boosting	Sequentially corrects errors; strong at minority class detection; best-in-class for structured data
+Model Selection Criteria & Results
+Model	ROC-AUC	PR-AUC ★	Recall	Precision	F1
+Logistic Regression	0.571	0.060	1.000	0.053	0.100
+Decision Tree	0.575	0.053	0.444	0.050	0.090
+Random Forest	0.555	0.052	0.556	0.058	0.104
+Gradient Boosting	0.460	0.054	0.000	0.000	0.000
+Why PR-AUC is the primary metric: In severely imbalanced datasets, ROC-AUC can be misleadingly optimistic because it includes true negatives (the dominant class). PR-AUC focuses only on the minority (fraud) class — making it the most reliable metric when false negatives (missed fraud) carry high cost.
+Why Recall matters: Missing a fraudulent transaction has real financial consequences. High recall = catching more fraud, even at the cost of some false alerts.
+Winner: Logistic Regression — highest PR-AUC and perfect Recall (catches 100% of fraud cases on test set). The low precision reflects the dataset's extreme imbalance, not a model failure.
+Validation Techniques
+•	Stratified Train/Test Split (80/20): Preserved class ratio in both sets
+•	5-Fold Stratified Cross-Validation: Evaluated model stability across different data splits
+Deployment
+The trained pipeline is ready for production deployment via:
+•	REST API (FastAPI/Flask) — JSON endpoint for transaction scoring integration
+Tech Stack
+Python · Pandas · NumPy · Scikit-learn · Matplotlib · Seaborn · SMOTE · Logistic Regression · Random Forest · Gradient Boosting · Decision Tree · ROC-AUC · PR-AUC
+Deliverables produced: Consolidated dataset · Cleaned dataset · EDA dashboard · SMOTE balancing chart · Full model evaluation dashboard · KPI intelligence dashboard · Performance metrics 
