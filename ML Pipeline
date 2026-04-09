@@ -1,49 +1,87 @@
-Title:
-End-to-End Fraud Detection System, ML Pipeline with SMOTE, Multi-Model Evaluation & Dashboard
-Project Description (LinkedIn Format)
-Objective: Built a production-ready machine learning pipeline to detect fraudulent financial transactions, covering the full data science lifecycle from raw multi-source data ingestion through model deployment.
-Data Engineering & Consolidation
-Integrated 10 separate CSV datasets (1,000 transactions) including account activity, anomaly scores, merchant data, customer profiles, suspicious activity flags, transaction metadata, and category labels into a single consolidated analytical file using Python (Pandas merge pipeline on TransactionID and CustomerID keys).
-Challenges encountered:
-•	Data lived in 10 siloed files with different join keys (TransactionID vs CustomerID vs MerchantID) required multi-step sequential merging
-•	Non-predictive PII columns (Name, Address, MerchantName) had to be identified and removed to prevent data leakage
-•	Timestamp fields required feature engineering (Hour, DayOfWeek, Month) to extract predictive signal
-•	LastLogin dates required transformation into a numeric "DaysSinceLogin" feature
-Exploratory Data Analysis (EDA)
-Performed full EDA using Python (Pandas, Matplotlib, Seaborn):
-•	Class distribution: Confirmed severe imbalance — only 4.5% fraud (45 cases) vs 95.5% non-fraud
-•	Correlation analysis: SuspiciousFlag, DaysSinceLogin, and AnomalyScore showed the strongest (though modest) correlation with fraud
-•	Amount distribution: Fraud cases did not cluster at high amounts — fraud was distributed across all transaction sizes
-•	Temporal patterns: Fraud rate varied by hour of day and month, revealing behavioral patterns
-•	Anomaly score: Fraudulent transactions skewed toward higher anomaly scores, validating the feature
-Class Imbalance — SMOTE
-The dataset had 955 non-fraud vs 45 fraud cases (21:1 ratio) — a textbook imbalanced classification problem. Trained on raw data would cause models to predict "Non-Fraud" for everything and still appear 95.5% accurate, making the model useless for fraud detection.
-Solution: SMOTE (Synthetic Minority Over-sampling Technique)
-•	Generated synthetic fraud samples via linear interpolation between real minority-class instances
-•	Balanced training set to a 2:1 ratio (764 non-fraud : 382 fraud)
-•	Applied only to training data — test set preserved at original distribution to reflect real-world conditions
-Machine Learning Models
-Four models were selected and tested, each chosen for a specific reason:
-Model	Why Selected
-Logistic Regression	Baseline linear model; interpretable coefficients; fast to train; handles class weights natively
-Decision Tree	Captures non-linear relationships; fully interpretable decision paths; useful for rule extraction
-Random Forest	Ensemble method that reduces variance; robust to outliers; handles feature interaction well
-Gradient Boosting	Sequentially corrects errors; strong at minority class detection; best-in-class for structured data
-Model Selection Criteria & Results
-Model	ROC-AUC	PR-AUC ★	Recall	Precision	F1
-Logistic Regression	0.571	0.060	1.000	0.053	0.100
-Decision Tree	0.575	0.053	0.444	0.050	0.090
-Random Forest	0.555	0.052	0.556	0.058	0.104
-Gradient Boosting	0.460	0.054	0.000	0.000	0.000
-Why PR-AUC is the primary metric: In severely imbalanced datasets, ROC-AUC can be misleadingly optimistic because it includes true negatives (the dominant class). PR-AUC focuses only on the minority (fraud) class — making it the most reliable metric when false negatives (missed fraud) carry high cost.
-Why Recall matters: Missing a fraudulent transaction has real financial consequences. High recall = catching more fraud, even at the cost of some false alerts.
-Winner: Logistic Regression — highest PR-AUC and perfect Recall (catches 100% of fraud cases on test set). The low precision reflects the dataset's extreme imbalance, not a model failure.
-Validation Techniques
-•	Stratified Train/Test Split (80/20): Preserved class ratio in both sets
-•	5-Fold Stratified Cross-Validation: Evaluated model stability across different data splits
-Deployment
-The trained pipeline is ready for production deployment via:
-•	REST API (FastAPI/Flask) — JSON endpoint for transaction scoring integration
-Tech Stack
-Python · Pandas · NumPy · Scikit-learn · Matplotlib · Seaborn · SMOTE · Logistic Regression · Random Forest · Gradient Boosting · Decision Tree · ROC-AUC · PR-AUC
-Deliverables produced: Consolidated dataset · Cleaned dataset · EDA dashboard · SMOTE balancing chart · Full model evaluation dashboard · KPI intelligence dashboard · Performance metrics 
+Fraudulent Transaction Detection Project
+Introduction
+Financial institutions face enormous losses from fraudulent transactions. To help stakeholders see tangible results, this project demonstrates end to end skills from data ingestion to deployment using a synthetic dataset of 1,000 transactions 
+with just 45 flagged as fraud. The objective was to predict fraudulent transactions by combining 10 diverse CSV files (account activity, customer and merchant attributes, anomaly scores and more) into a single analysis pipeline, cleaning the data,
+exploring relationships, balancing imbalanced classes with SMOTE, evaluating several machine learning algorithms with robust metrics, and building an interactive dashboard for business users.
+Data consolidation and cleaning
+The ten CSV files obtained from Kaggle (https://www.kaggle.com/datasets) were loaded with pandas and merged using common keys such as TransactionID, CustomerID and MerchantID. The resulting consolidated_transactions.csv contains 17 fields and 
+1,000 records; there were no missing values. Important variables include:
+•	TransactionID (identifier) 
+•	Amount/TransactionAmount (monetary value) 
+•	AnomalyScore (numeric anomaly score from a separate model) 
+•	Category (transaction category from transaction_category_labels) 
+•	Timestamp (date and time) 
+•	Customer demographics: CustomerID, Name, Age, Address, AccountBalance, LastLogin 
+•	Merchant data: MerchantID, MerchantName, Location 
+•	FraudIndicator: target variable where 1 marks a fraudulent transaction and 0 a normal one 
+The cleaning phase involved:
+1.	Parsing dates and extracting temporal features: Timestamp was converted to datetime. New features derived included hour of transaction, day of week and month; days since last login were computed from LastLogin. 
+2.	Dropping high cardinality attributes: features such as Name and Address were removed because their high uniqueness can cause overfitting and are privacy sensitive. 
+3.	Target definition: FraudIndicator was used as the dependent variable (1 for fraud, 0 for normal); all other variables were treated as independent. 
+4.	Class imbalance check – The merged dataset contained only 45 frauds vs. 955 normal transactions (≈4.5 % fraud rate), creating a highly imbalanced problem. 
+Exploratory data analysis
+Descriptive statistics showed that fraudulent transactions tended to have slightly higher median amounts and anomaly scores, but the overlap with normal transactions was significant. A correlation matrix was visualized using 
+a heatmap to examine linear relationships. Positive correlations were observed between Amount and AccountBalance, while the FraudIndicator showed only weak correlations with numerical features, suggesting that linear models 
+alone may not separate fraud well. This justifies trying non linear models and more sophisticated techniques.
+Handling imbalanced data using SMOTE
+Because fraudulent transactions constituted only 4.5 % of the data, training a classifier on the raw dataset risked biasing the model toward the majority class. Synthetic Minority Oversampling Technique (SMOTE) was applied to the training folds. 
+SMOTE synthetically generates new minority (fraud) examples by interpolating between existing fraud samples in feature space. This process continues until the class distribution becomes balanced. Oversampling was performed only on the training data 
+within each cross validation fold to prevent information leakage.
+Model building and evaluation
+To extract value from the cleaned data, a machine learning pipeline was created using scikit learn and imblearn. The column transformer encoded categorical features (one hot encoding), scaled numerical features (StandardScaler), 
+and passed them to a SMOTE oversampler followed by a classifier. A Stratified 5 fold cross validation ensured that both classes appeared in each fold. Six algorithms were compared:
+1.	Logistic Regression – baseline linear classifier. 
+2.	Random Forest – ensemble of decision trees. 
+3.	Gradient Boosting – sequential tree boosting. 
+4.	Decision Tree – interpretable single tree. 
+5.	K Nearest Neighbors (KNN) – non parametric, uses distance in feature space. 
+6.	Support Vector Machine (RBF kernel) – non linear decision boundary. 
+Evaluation metrics
+Imbalanced classification requires metrics that reflect the minority class. The following metrics were used:
+•	Precision – the proportion of predicted frauds that are truly fraudulent. It equals true positives divided by the sum of true positives and false positives. 
+•	Recall (sensitivity) – the proportion of actual frauds that the model correctly identifies. It equals true positives divided by true positives plus false negatives. 
+•	F1 score – harmonic mean of precision and recall; it provides a single summary that balances both metrics. 
+•	Precision Recall AUC (PR AUC) – area under the precision recall curve. For imbalanced datasets, the PR curve is more informative than ROC because it focuses on correctly detecting the minority class. High precision and high recall correspond to 
+  few false positives and few false negatives. A high PR AUC indicates a strong classifier. 
+•	Receiver Operating Characteristic AUC (ROC AUC) – area under the ROC curve, which plots the true positive rate against the false positive rate across thresholds. A perfect model has ROC AUC = 1 and a random classifier has 0.5. 
+Model comparison results
+The table below summarizes the mean cross validated metrics for each algorithm. The KNN classifier offered the highest PR AUC and recall, while other models struggled to identify fraud:
+Model	                  ROC_AUC	    PR_AUC	    Recall	    Precision	  F1 score
+Logistic Regression	    0.487	      0.0568	    0.000	      0.000	      0.000
+Random Forest	          0.500      	0.0568	    0.000	      0.000	      0.000
+Gradient Boosting	      0.425	      0.0435	    0.000	      0.000	      0.000
+Decision Tree	          0.494	      0.0460	    0.022	      0.018	      0.020
+KNN	                    0.640	      0.0739	    0.644	      0.0761	    0.136
+SVM (RBF)	              0.595	      0.0745	    0.000	      0.000	      0.000
+While KNN achieved higher recall, it still produced many false positives (low precision), highlighting that the feature set may not be rich enough to discriminate fraud. Most models predicted no fraud at all (zero recall) 
+due to the small sample of fraudulent examples. Additional features such as device information, velocity of transactions or network anomalies could improve performance.
+Validation and deployment considerations
+Validation using stratified cross validation helped to assess generalization on unseen data. Before deploying to production, it is essential to:
+1.	Use an independent test set to estimate performance on new data not used during model training or oversampling. 
+2.	Monitor model drift and retrain periodically as fraud patterns evolve. 
+3.	Implement threshold tuning based on business objectives (e.g., high recall to catch fraud vs. high precision to minimize false alerts). 
+4.	Explainability and governance – regulatory requirements may demand interpretable models; using tree based models or SHAP values can provide explanations. 
+After selecting the best model (KNN in this experiment), it can be exported using joblib or pickle and wrapped in a REST API for real time scoring. The pipeline should replicate preprocessing (feature engineering, encoding, SMOTE for training only)
+to ensure consistency.
+Interactive dashboard
+An interactive dashboard was built with Plotly Dash and saved as fraud_detection_dashboard.html. The dashboard enables recruiters or business users to explore fraud patterns:
+•	Bar chart showing the number of fraud and non fraud transactions per category. 
+•	Violin plot comparing the distribution of transaction amounts for fraudulent vs. normal transactions. 
+•	Scatter plot of anomaly score versus transaction amount coloured by fraud label to identify outliers. 
+•	KPI panel summarizing key statistics such as total transactions, number of fraud cases, and fraud rate. Filters allow users to slice by category or merchant location. (In the provided implementation, some layout adjustments are needed to avoid 
+  overlapping KPI values.) 
+The dashboard helps non technical stakeholders understand patterns and supports interactive exploration of the data, which is attractive to recruiters seeking evidence of data visualization skills.
+Challenges encountered
+Several issues arose during the project:
+1.	Class imbalance – With only 45 fraud cases, most algorithms predicted the majority class. SMOTE mitigated the problem but did not overcome the fundamental limitation of sparse fraud examples. 
+2.	Feature sparsity and weak correlations – The available features showed little correlation with the fraud label. Real world fraud detection often requires more complex behavioural features (transaction velocity, device fingerprinting, IP geolocation). 
+    Without such data, predictive power was limited. 
+3.	Dashboard layout – Plotly’s make_subplots required careful domain assignment for the KPI indicator; the initial version had overlapping KPI text. This can be improved by adjusting row heights or creating dedicated KPI widgets. 
+4.	Data merging and cleaning – Combining ten datasets required careful alignment on keys; mismatches could have introduced duplicates or mislabelled transactions. Additionally, dropping high cardinality fields was necessary to prevent overfitting and protect privacy. 
+
+Ranked feature sensitivity (higher implies more influence on the fraud prediction): AnomalyScore, TransactionAmount, AccountBalance, Age, DaysSinceLastLogin, TransactionCategory, MerchantLocation, MerchantID. Names and addresses were excluded to protect privacy.
+
+Conclusion
+This project showcases a complete fraud detection pipeline. It involved merging multi source data, creating new features, dealing with class imbalance using SMOTE, evaluating multiple algorithms with metrics suitable for imbalanced classification, 
+and delivering insights through an interactive dashboard. Although the models struggled due to limited and weakly informative features, the process demonstrates competence in data engineering, exploratory analysis, model selection, metric interpretation, 
+visualization and deployment considerations. With richer data and continuous monitoring, such a system could be refined into a powerful fraud detection service.
